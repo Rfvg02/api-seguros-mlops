@@ -1,33 +1,32 @@
-# API de seguros medicos - Taller 3 MLOps
+# api-seguros-mlops
 
-API con FastAPI que recibe los datos de una persona y predice el costo del seguro medico (`charges`). El modelo es un pipeline de scikit-learn (imputacion, StandardScaler y OneHotEncoder + XGBoost) guardado en `pipeline.joblib`, el mismo del taller 1. El `main.py` sale del repo de clase [MLOps-FastAPI](https://github.com/smm-0216/MLOps-FastAPI).
+Esta es la API del taller 3 de MLOps (EIA). Use el pipeline del taller 1, el de seguros medicos que predice el `charges` con XGBoost, y el `main.py` que vimos en clase ([MLOps-FastAPI](https://github.com/smm-0216/MLOps-FastAPI)), solo le deje el `/predict` y el `/`, el de `/sum` no hacia falta.
 
-## Archivos
-- `entrenar_pipeline.py`: entrena el pipeline y lo guarda en `pipeline.joblib`
-- `main.py`: la API, con `/` y `/predict`
-- `pipeline.joblib`: el pipeline ya entrenado
-- `requirements.txt`: las dependencias con sus versiones
-- `fastapi_srv.service`: el servicio de systemd para EC2
+El pipeline tiene la preparacion (imputacion, StandardScaler y OneHotEncoder) y el modelo con sus hiperparametros, todo guardado en `pipeline.joblib`. Lo entrena `entrenar_pipeline.py`, pero el csv no esta en el repo porque los datos no se suben, toca bajarlo del Drive de la clase si se quiere volver a entrenar.
 
-## Correr en local
-Python 3.11.
+El `requirements.txt` tiene las versiones exactas con las que lo entrene, si se instala otra version de scikit-learn el joblib puede no cargar.
+
+## Correrlo en local
+
+Con Python 3.11:
 
 ```bash
 pip install -r requirements.txt
 uvicorn main:app --reload
 ```
 
-Abrir `http://127.0.0.1:8000/docs` y probar `/predict`. Ejemplo con curl:
+y abrir `http://127.0.0.1:8000/docs` para probar el `/predict`. O con curl:
 
 ```bash
 curl -X POST http://127.0.0.1:8000/predict -H "Content-Type: application/json" -d "{\"data_to_predict\": [[23, \"male\", 34.4, 0, \"no\", \"southwest\"]]}"
 ```
 
-Para volver a entrenar el pipeline hay que poner `medical_insurance.csv` en esta carpeta (no se sube al repo) y correr `python entrenar_pipeline.py`.
+## Correrlo en EC2 (Ubuntu)
 
-## Correr en EC2 (Ubuntu)
+Igual que en clase, con Miniconda:
+
 ```bash
-git clone https://github.com/<usuario>/api-seguros-mlops.git
+git clone https://github.com/Rfvg02/api-seguros-mlops.git
 cd api-seguros-mlops
 conda create -n fastapi python=3.11
 conda activate fastapi
@@ -35,9 +34,12 @@ pip install -r requirements.txt
 uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
-En el security group de la instancia hay que abrir el puerto 8000. La API queda en `http://<ip-publica>:8000/docs`.
+Hay que abrir el puerto 8000 en el security group, y queda en `http://<ip-publica>:8000/docs`.
 
-## Dejarla como servicio (systemd)
+## Dejarla como servicio
+
+Para que no se caiga al cerrar la terminal ni al reiniciar la instancia esta el `fastapi_srv.service`:
+
 ```bash
 sudo cp fastapi_srv.service /etc/systemd/system/
 sudo systemctl daemon-reload
@@ -46,4 +48,4 @@ sudo systemctl enable fastapi_srv
 sudo systemctl status fastapi_srv
 ```
 
-Con eso la API sigue arriba aunque se cierre la sesion SSH y vuelve a arrancar sola si se reinicia la instancia.
+Si el entorno o la carpeta quedan en otra ruta toca cambiar el `WorkingDirectory` y el `ExecStart` del .service (se saca con `which python` y se cambia python por uvicorn).
